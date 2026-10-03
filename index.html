@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>工事進捗報告書</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#e9ecef;--bar:#fff;--bar-ink:#1b2430;--line:#cfd6de;--accent:#1f5f8b;--accent-ink:#fff;--muted:#5d6b7a;--paper:#fff;--ink:#111;--hint:#eef4f9}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--bar:#1c222a;--bar-ink:#e6ebf0;--line:#323b46;--accent:#5aa6d6;--accent-ink:#0b1722;--muted:#93a0ae;--hint:#e3edf6}}
+:root[data-theme="dark"]{--bg:#14181d;--bar:#1c222a;--bar-ink:#e6ebf0;--line:#323b46;--accent:#5aa6d6;--accent-ink:#0b1722;--muted:#93a0ae;--hint:#e3edf6}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--bar-ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",system-ui,sans-serif}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--bar);border-bottom:1px solid var(--line)}
+.bar h1{font-size:15px;margin:0 auto 0 0;font-weight:700}
+.bar .st{font-size:12px;color:var(--muted)}
+button.b{font:inherit;font-size:14px;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--bar-ink);cursor:pointer}
+button.b.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.wrap{padding:14px;overflow-x:auto}
+.sheet{width:210mm;max-width:none;margin:0 auto;background:var(--paper);color:var(--ink);padding:10mm;box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.frame{border:1.5px solid #000}
+.head{padding:4mm 6mm 2mm;border-bottom:1.5px solid #000;position:relative}
+.head h2{margin:0 0 5mm;font-size:18px;letter-spacing:.9em;font-weight:700}
+.row{display:flex;align-items:baseline;gap:8px;margin:1.5mm 0;font-size:14px}
+.row b{min-width:3.5em}
+.row.right{position:absolute;right:6mm;bottom:2mm;margin:0;font-size:12px}
+.f{font:inherit;color:inherit;border:0;border-bottom:1px dotted #8a97a5;background:transparent;padding:1px 2px;min-width:0}
+.f.title{width:120mm;max-width:100%}
+.f.auth{width:38mm;font-size:12px}
+.f.date{width:38mm}
+.mid{display:flex;border-bottom:1.5px solid #000;min-height:20mm}
+.mid>div{padding:1.5mm 3mm;border-right:1.5px solid #000;font-size:13px;font-weight:700}
+.mid>div:nth-child(1),.mid>div:nth-child(2){width:32mm;text-align:center;flex:none}
+.mid>div:last-child{border-right:0;flex:1}
+.pct{display:block;margin:3mm auto 0;font:inherit;font-size:16px;font-weight:400;border:0;border-bottom:1px dotted #8a97a5;background:transparent;color:inherit;appearance:none;-webkit-appearance:none;text-align:center;text-align-last:center;width:20mm}
+.note{width:100%;height:13mm;margin-top:1mm;border:0;background:transparent;resize:none;font:inherit;font-size:12px;font-weight:400;color:inherit}
+.grid{display:grid;grid-template-columns:1fr 1fr}
+.cell{border-right:1.5px solid #000;min-width:0}
+.cell:nth-child(even){border-right:0}
+.ph{position:relative;aspect-ratio:1.5;border-bottom:1.5px solid #000;overflow:hidden;cursor:pointer;background:var(--hint);display:flex;align-items:center;justify-content:center;text-align:center;color:#5d6b7a;font-size:12px}
+.ph:focus-visible{outline:2px solid #1f5f8b;outline-offset:-2px}
+.ph.on{background:#fff}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .x{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:16px;cursor:pointer;line-height:1}
+.ph.drag{outline:3px dashed #1f5f8b;outline-offset:-4px}
+.cap{display:block;width:100%;height:9mm;border:0;border-bottom:1.5px solid #000;padding:0 2mm;font:inherit;font-size:12px;background:transparent;color:inherit}
+.grid .cell:nth-last-child(-n+2) .cap{border-bottom:0}
+.hint{max-width:210mm;margin:10px auto 0;font-size:12px;color:var(--muted)}
+.sheet.cap .f,.sheet.cap .pct,.sheet.cap .note{border-bottom-color:transparent}
+.sheet.cap .x,.sheet.cap .empty{display:none}
+.sheet.cap .ph{background:#fff}
+@media print{
+@page{size:A4 portrait;margin:0}
+html,body{background:#fff}
+:root{padding:0}
+.bar,.hint,.x,.empty{display:none!important}
+.wrap{padding:0;overflow:visible}
+.sheet{box-shadow:none;margin:0;width:210mm}
+.f,.pct,.note{border-bottom-color:transparent}
+.ph{background:#fff}
+}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>工事進捗報告書 <small style="font-weight:400;color:var(--muted)">v3</small></h1>
+  <span class="st" id="st" role="status"></span>
+  <button class="b" id="cfg">設定</button>
+  <button class="b" id="sw">アカウント切替</button>
+  <button class="b" id="clr">新規作成</button>
+  <button class="b" id="prt">PDF印刷</button>
+  <button class="b p" id="up">OneDriveに保存</button>
+</div>
+<div class="wrap">
+<div class="sheet"><div class="frame">
+  <div class="head">
+    <h2>工事進捗報告書</h2>
+    <div class="row"><b>報告日</b><input class="f date" type="date" id="date"></div>
+    <div class="row"><b>工事名</b><input class="f title" id="title" placeholder="工事名を入力"></div>
+    <div class="row right">作成者<input class="f auth" id="author"></div>
+  </div>
+  <div class="mid">
+    <div>外部工程進捗率<select class="pct" id="ext"></select></div>
+    <div>内部工程進捗率<select class="pct" id="int"></select></div>
+    <div>その他補足事項など<textarea class="note" id="note"></textarea></div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <input type="file" id="file" accept="image/*" hidden>
+</div></div>
+<p class="hint">写真枠をタップして撮影・選択（Ctrl+Vで貼り付け、ドラッグ＆ドロップも可）。入力内容はこの端末に自動保存されます。「OneDriveに保存」でPDF化して指定フォルダへ直接保存します（初回は「設定」でクライアントIDを入力）。</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const KEY='progress-report-v1',N=6;
+const $=id=>document.getElementById(id);
+let S={date:'',title:'',author:'',ext:'0',int:'0',note:'',caps:Array(N).fill(''),imgs:Array(N).fill('')};
+let cur=0,timer;
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function setSt(t){$('st').textContent=t}
+function save(){clearTimeout(timer);timer=setTimeout(()=>{
+  try{localStorage.setItem(KEY,JSON.stringify(S));setSt('自動保存済み')}
+  catch(e){try{localStorage.setItem(KEY,JSON.stringify({...S,imgs:Array(N).fill('')}));setSt('写真は保存容量超過のため未保存')}catch(e2){setSt('保存できません')}}
+},400)}
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)S={...S,...j}}catch(e){}
+  if(!S.date)S.date=today()}
+// 進捗率
+for(const id of['ext','int'])for(let i=0;i<=100;i+=5){const o=document.createElement('option');o.value=i;o.textContent=i+'％';$(id).appendChild(o)}
+// 写真枠
+const grid=$('grid');
+for(let i=0;i<N;i++){
+  const c=document.createElement('div');c.className='cell';
+  c.innerHTML='<div class="ph" tabindex="0" data-i="'+i+'"></div><input class="cap" data-i="'+i+'" aria-label="写真'+(i+1)+'の説明" placeholder="写真'+(i+1)+'の説明">';
+  grid.appendChild(c);
+}
+function renderPh(i){
+  const ph=grid.querySelector('.ph[data-i="'+i+'"]');ph.innerHTML='';
+  if(S.imgs[i]){ph.classList.add('on');const im=new Image();im.src=S.imgs[i];im.alt='写真'+(i+1);ph.appendChild(im);
+    const x=document.createElement('button');x.className='x';x.type='button';x.textContent='×';x.setAttribute('aria-label','写真を削除');
+    x.onclick=e=>{e.stopPropagation();S.imgs[i]='';renderPh(i);save()};ph.appendChild(x)}
+  else{ph.classList.remove('on');const s=document.createElement('span');s.className='empty';s.textContent='タップして写真を追加';ph.appendChild(s)}
+}
+function fill(){
+  $('date').value=S.date;$('title').value=S.title;$('author').value=S.author;$('ext').value=S.ext;$('int').value=S.int;$('note').value=S.note;
+  grid.querySelectorAll('.cap').forEach(e=>e.value=S.caps[e.dataset.i]||'');
+  for(let i=0;i<N;i++)renderPh(i);
+}
+function toDataURL(file){return new Promise((res,rej)=>{
+  const u=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{const m=1280,k=Math.min(1,m/Math.max(im.naturalWidth,im.naturalHeight));
+    const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.8))};
+  im.onerror=()=>{URL.revokeObjectURL(u);rej()};im.src=u})}
+async function setImg(i,f){if(!f||!f.type.startsWith('image/'))return;
+  try{S.imgs[i]=await toDataURL(f);renderPh(i);save()}catch(e){setSt('画像を読み込めませんでした')}}
+grid.addEventListener('click',e=>{const p=e.target.closest('.ph');if(p){cur=+p.dataset.i;$('file').click()}});
+grid.addEventListener('keydown',e=>{const p=e.target.closest('.ph');if(p&&(e.key==='Enter'||e.key===' ')){e.preventDefault();cur=+p.dataset.i;$('file').click()}});
+$('file').addEventListener('change',e=>{setImg(cur,e.target.files[0]);e.target.value=''});
+grid.addEventListener('dragover',e=>{const p=e.target.closest('.ph');if(p){e.preventDefault();p.classList.add('drag')}});
+grid.addEventListener('dragleave',e=>{const p=e.target.closest('.ph');if(p)p.classList.remove('drag')});
+grid.addEventListener('drop',e=>{const p=e.target.closest('.ph');if(!p)return;e.preventDefault();p.classList.remove('drag');setImg(+p.dataset.i,e.dataTransfer.files[0])});
+document.addEventListener('paste',e=>{
+  const f=[...(e.clipboardData?.files||[])].find(x=>x.type.startsWith('image/'));if(!f)return;
+  const a=document.activeElement,p=a&&a.closest&&a.closest('.ph');
+  let i=p?+p.dataset.i:S.imgs.findIndex(x=>!x);if(i<0)i=0;setImg(i,f)});
+// 入力
+for(const[id,k]of[['date','date'],['title','title'],['author','author'],['ext','ext'],['int','int'],['note','note']])
+  $(id).addEventListener('input',e=>{S[k]=e.target.value;save()});
+grid.addEventListener('input',e=>{if(e.target.classList.contains('cap')){S.caps[+e.target.dataset.i]=e.target.value;save()}});
+// 操作
+$('prt').onclick=()=>{
+  const d=(S.date||'').replace(/-/g,'');const old=document.title;
+  document.title='工事進捗報告書_'+(S.title||'無題')+'_'+d;window.print();document.title=old};
+$('clr').onclick=()=>{if(!confirm('入力内容をすべて消して新規作成しますか？'))return;
+  S={date:today(),title:'',author:S.author,ext:'0',int:'0',note:'',caps:Array(N).fill(''),imgs:Array(N).fill('')};fill();save()};
+// OneDrive保存
+const CK='progress-report-cfg';let CFG={clientId:'',folder:'工事進捗報告書'},app;
+try{CFG={...CFG,...JSON.parse(localStorage.getItem(CK)||'{}')}}catch(e){}
+$('cfg').onclick=()=>{
+  const id=prompt('Entraアプリの「アプリケーション(クライアント)ID」',CFG.clientId);if(id===null)return;
+  const f=prompt('保存先フォルダ名（OneDrive直下。例: 工事報告/2026）',CFG.folder);if(f===null)return;
+  CFG={clientId:id.trim(),folder:f.trim().replace(/^\/+|\/+$/g,'')};app=null;
+  try{localStorage.setItem(CK,JSON.stringify(CFG))}catch(e){}setSt('設定を保存しました')};
+const SC=['Files.ReadWrite'];
+$('sw').onclick=()=>{if(!confirm('保存先のアカウントを切り替えます（次回保存時にアカウントを選択します）。よろしいですか？'))return;
+  try{Object.keys(localStorage).filter(k=>k.startsWith('msal.')||k.includes('login.windows.net')||k.includes('login.microsoftonline.com')||(CFG.clientId&&k.includes(CFG.clientId))).forEach(k=>localStorage.removeItem(k))}catch(e){}
+  app=null;setSt('サインイン情報を消去しました。「OneDriveに保存」でアカウントを選択できます')};
+function mk(){if(!app)app=new msal.PublicClientApplication({auth:{clientId:CFG.clientId,authority:'https://login.microsoftonline.com/common',redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});return app}
+function clearStale(){try{Object.keys(localStorage).filter(k=>k.includes('interaction.status')).forEach(k=>localStorage.removeItem(k))}catch(e){}}
+async function getToken(){
+  if(!CFG.clientId)throw new Error('先に「設定」でクライアントIDを入力してください');
+  const a=mk();let acc=a.getAllAccounts()[0];
+  if(!acc){clearStale();setSt('Microsoftのサインイン画面へ移動します…');await a.loginRedirect({scopes:SC,prompt:'select_account'});return null}
+  try{return(await a.acquireTokenSilent({scopes:SC,account:acc})).accessToken}
+  catch(e){setSt('再サインインのため移動します…');clearStale();await a.acquireTokenRedirect({scopes:SC,account:acc});return null}}
+async function makePdf(){
+  const K=8,W=210*K,H=297*K,m=v=>v*K;
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const FF='"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo","Noto Sans CJK JP",sans-serif';
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#000';x.strokeStyle='#000';x.lineWidth=m(.4);
+  const L=(a,b,c2,d)=>{x.beginPath();x.moveTo(m(a),m(b));x.lineTo(m(c2),m(d));x.stroke()};
+  const T=(t,px,py,sz,o={})=>{x.font=(o.b?'700 ':'400 ')+m(sz)+'px '+FF;x.textAlign=o.a||'left';x.textBaseline='alphabetic';
+    if(o.w)x.fillText(t,m(px),m(py),m(o.w));else x.fillText(t,m(px),m(py))};
+  const wrap=(t,w,sz)=>{x.font='400 '+m(sz)+'px '+FF;const out=[];
+    for(const para of String(t||'').split('\n')){let line='';
+      for(const ch of para){if(x.measureText(line+ch).width>m(w)&&line){out.push(line);line=ch}else line+=ch}out.push(line)}return out};
+  const load=src=>new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+  const ims=await Promise.all(S.imgs.map(load));
+  const gy=72,pw=95,ph=pw/1.5,cp=9,rh=ph+cp,bottom=gy+3*rh;
+  // 見出し
+  let tx=16;for(const ch of '工事進捗報告書'){T(ch,tx,21,5,{b:1});tx+=9}
+  const d=(S.date||'').split('-');
+  T('報告日',16,31,3.7,{b:1});T(d.length==3?d[0]+'年'+(+d[1])+'月'+(+d[2])+'日':'',34,31,3.7);
+  T('工事名',16,39,3.7,{b:1});T(S.title||'',34,39,3.7,{w:120});
+  T('作成者',148,46,3.2);T(S.author||'',160,46,3.2,{w:38});
+  // 進捗・補足
+  T('外部工程進捗率',26,56,3.1,{b:1,a:'center'});T((S.ext||0)+'％',26,66,4.2,{a:'center'});
+  T('内部工程進捗率',58,56,3.1,{b:1,a:'center'});T((S.int||0)+'％',58,66,4.2,{a:'center'});
+  T('その他補足事項など',77,55,3.1,{b:1});
+  wrap(S.note,118,3.1).slice(0,4).forEach((t,i)=>T(t,77,60.5+i*3.9,3.1));
+  // 写真
+  for(let i=0;i<6;i++){const col=i%2,row=i>>1,gx=10+col*pw,y0=gy+row*rh,im=ims[i];
+    if(im){const sc=Math.max(m(pw)/im.width,m(ph)/im.height),sw=m(pw)/sc,sh=m(ph)/sc;
+      x.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,m(gx),m(y0),m(pw),m(ph))}
+    L(gx,y0+ph,gx+pw,y0+ph);if(row<2)L(gx,y0+rh,gx+pw,y0+rh);
+    T(S.caps[i]||'',gx+2,y0+ph+cp*.66,3.2,{w:pw-4})}
+  // 枠線
+  x.strokeRect(m(10),m(10),m(190),m(bottom-10));
+  L(10,50,200,50);L(10,72,200,72);L(42,50,42,72);L(74,50,74,72);L(105,gy,105,bottom);
+  const pdf=new jspdf.jsPDF({unit:'mm',format:'a4'});
+  pdf.addImage(c.toDataURL('image/jpeg',.88),'JPEG',0,0,210,297);
+  return pdf.output('blob')}
+$('up').onclick=async()=>{
+  const b=$('up');b.disabled=true;
+  try{
+    setSt('処理を開始しました…');const t=await getToken();if(!t)return;
+    setSt('PDF作成中…');const blob=await makePdf();
+    const nm=('工事進捗報告書_'+(S.title||'無題')+'_'+(S.date||'').replace(/-/g,'')+'.pdf').replace(/[\\/:*?"<>|]/g,'_');
+    const path=(CFG.folder?CFG.folder.split('/').map(encodeURIComponent).join('/')+'/':'')+encodeURIComponent(nm);
+    setSt('アップロード中…');
+    const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/root:/'+path+':/content?@microsoft.graph.conflictBehavior=rename',{method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':'application/pdf'},body:blob});
+    if(!r.ok)throw new Error('アップロード失敗('+r.status+')');
+    setSt('保存しました: '+(CFG.folder||'ルート')+'/'+nm);
+  }catch(e){const m='エラー: '+(e.message||e.errorMessage||e);setSt(m);alert(m)}
+  finally{b.disabled=false}};
+load();fill();
+if(CFG.clientId)mk().handleRedirectPromise().then(r=>{if(r)setSt('サインインしました。もう一度「OneDriveに保存」を押してください')}).catch(e=>{clearStale();setSt('エラー: '+(e.message||e))});
+</script>
+</body>
+</html>
