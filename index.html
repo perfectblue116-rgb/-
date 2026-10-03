@@ -157,18 +157,26 @@ $('prt').onclick=()=>{
 $('clr').onclick=()=>{if(!confirm('入力内容をすべて消して新規作成しますか？'))return;
   S={date:today(),title:'',author:S.author,ext:'0',int:'0',note:'',caps:Array(N).fill(''),imgs:Array(N).fill('')};fill();save()};
 // OneDrive保存
-const CK='progress-report-cfg';let CFG={clientId:'',folder:'工事進捗報告書'},app;
+const CK='progress-report-cfg';let CFG={clientId:'',tenant:'',share:'',folder:'工事進捗報告書'},app;
 try{CFG={...CFG,...JSON.parse(localStorage.getItem(CK)||'{}')}}catch(e){}
+const enc64=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const dec64=t=>JSON.parse(decodeURIComponent(escape(atob(t))));
+function saveCfg(){try{localStorage.setItem(CK,JSON.stringify(CFG))}catch(e){}}
+// 配布用の設定リンク（#setup=…）から設定を取り込む
+(()=>{const m=location.hash.match(/^#setup=(.+)$/);if(!m)return;
+  try{const o=dec64(m[1]);CFG={...CFG,clientId:o.c||'',tenant:o.t||'',share:o.s||''};saveCfg();app=null;
+    history.replaceState(null,'',location.pathname+location.search);setSt('設定リンクから設定を読み込みました')}catch(e){}})();
 $('cfg').onclick=()=>{
-  const id=prompt('Entraアプリの「アプリケーション(クライアント)ID」',CFG.clientId);if(id===null)return;
-  const f=prompt('保存先フォルダ名（OneDrive直下。例: 工事報告/2026）',CFG.folder);if(f===null)return;
-  CFG={clientId:id.trim(),folder:f.trim().replace(/^\/+|\/+$/g,'')};app=null;
-  try{localStorage.setItem(CK,JSON.stringify(CFG))}catch(e){}setSt('設定を保存しました')};
-const SC=['Files.ReadWrite'];
+  const id=prompt('① Entraアプリの「アプリケーション(クライアント)ID」',CFG.clientId);if(id===null)return;
+  const tn=prompt('② 「ディレクトリ(テナント)ID」（会社アカウント用）',CFG.tenant);if(tn===null)return;
+  const sh=prompt('③ 保存先フォルダの共有リンク（空欄＝自分のOneDrive直下の「工事進捗報告書」フォルダ）',CFG.share);if(sh===null)return;
+  CFG={...CFG,clientId:id.trim(),tenant:tn.trim(),share:sh.trim()};app=null;saveCfg();setSt('設定を保存しました');
+  if(CFG.clientId&&CFG.tenant)prompt('他の人に配るときは、この設定済みURLをコピーして送ってください（開くだけで同じ設定になります）',location.origin+location.pathname+'#setup='+enc64({c:CFG.clientId,t:CFG.tenant,s:CFG.share}))};
+const SC=['Files.ReadWrite.All'];
 $('sw').onclick=()=>{if(!confirm('保存先のアカウントを切り替えます（次回保存時にアカウントを選択します）。よろしいですか？'))return;
   try{Object.keys(localStorage).filter(k=>k.startsWith('msal.')||k.includes('login.windows.net')||k.includes('login.microsoftonline.com')||(CFG.clientId&&k.includes(CFG.clientId))).forEach(k=>localStorage.removeItem(k))}catch(e){}
   app=null;setSt('サインイン情報を消去しました。「OneDriveに保存」でアカウントを選択できます')};
-function mk(){if(!app)app=new msal.PublicClientApplication({auth:{clientId:CFG.clientId,authority:'https://login.microsoftonline.com/common',redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});return app}
+function mk(){if(!app)app=new msal.PublicClientApplication({auth:{clientId:CFG.clientId,authority:'https://login.microsoftonline.com/'+(CFG.tenant||'common'),redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});return app}
 function clearStale(){try{Object.keys(localStorage).filter(k=>k.includes('interaction.status')).forEach(k=>localStorage.removeItem(k))}catch(e){}}
 async function getToken(){
   if(!CFG.clientId)throw new Error('先に「設定」でクライアントIDを入力してください');
@@ -219,11 +227,22 @@ $('up').onclick=async()=>{
     setSt('処理を開始しました…');const t=await getToken();if(!t)return;
     setSt('PDF作成中…');const blob=await makePdf();
     const nm=('工事進捗報告書_'+(S.title||'無題')+'_'+(S.date||'').replace(/-/g,'')+'.pdf').replace(/[\\/:*?"<>|]/g,'_');
-    const path=(CFG.folder?CFG.folder.split('/').map(encodeURIComponent).join('/')+'/':'')+encodeURIComponent(nm);
+    setSt('保存先を確認中…');
+    const H={Authorization:'Bearer '+t},ne=encodeURIComponent(nm),Q='?@microsoft.graph.conflictBehavior=rename';
+    let url,where;
+    if(CFG.share){
+      const sid='u!'+btoa(unescape(encodeURIComponent(CFG.share))).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
+      const g=await fetch('https://graph.microsoft.com/v1.0/shares/'+sid+'/driveItem?$select=id,name,folder,parentReference',{headers:H});
+      if(!g.ok)throw new Error('共有フォルダを開けません('+g.status+')。リンクとフォルダの編集権限を確認してください');
+      const j=await g.json();if(!j.folder)throw new Error('共有リンクがフォルダではありません');
+      url='https://graph.microsoft.com/v1.0/drives/'+j.parentReference.driveId+'/items/'+j.id+':/'+ne+':/content'+Q;where='共有フォルダ「'+j.name+'」';
+    }else{
+      url='https://graph.microsoft.com/v1.0/me/drive/root:/'+CFG.folder.split('/').map(encodeURIComponent).join('/')+'/'+ne+':/content'+Q;where=CFG.folder;
+    }
     setSt('アップロード中…');
-    const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/root:/'+path+':/content?@microsoft.graph.conflictBehavior=rename',{method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':'application/pdf'},body:blob});
+    const r=await fetch(url,{method:'PUT',headers:{...H,'Content-Type':'application/pdf'},body:blob});
     if(!r.ok)throw new Error('アップロード失敗('+r.status+')');
-    setSt('保存しました: '+(CFG.folder||'ルート')+'/'+nm);
+    setSt('保存しました: '+where+' / '+nm);
   }catch(e){const m='エラー: '+(e.message||e.errorMessage||e);setSt(m);alert(m)}
   finally{b.disabled=false}};
 load();fill();
